@@ -1,38 +1,38 @@
 # Page & login
 
-GET /
-POST /login
+* **GET** /
+* **POST** /login
 
 # updating settings
 
-GET /settings
-POST /settings
+* **GET** /settings
+* **POST** /settings
 
 # Adding and removing image md5s or phashes from the blacklist
 
-GET /images/blacklist
-PUT /images/blacklist
-DELETE /images/blacklist
+* **GET** /images/blacklist
+* **PUT** /images/blacklist
+* **DELETE** /images/blacklist
 
 # API calls should all have an API token for auth
 
-POST /api/image
-POST /api/dns-address
-POST /api/mobile-device
-POST /api/user-agent
-POST /api/vulnerability
-POST /api/account
-POST /api/protocol
+* **POST** /api/image
+* **POST** /api/dns-address
+* **POST** /api/mobile-device
+* **POST** /api/user-agent
+* **POST** /api/vulnerability
+* **POST** /api/account
+* **POST** /api/protocol
 
 # Websocket event types
 
-image
-account
-protocol
-mobile_device
-user_agent
-vulnerability
-blacklist
+* image
+* account
+* protocol
+* mobile_device
+* user_agent
+* vulnerability
+* blacklist
 
 # Websocket Info
 
@@ -42,7 +42,7 @@ paint the page.
 
 # DB Models
 
-image
+**image**
  - id
  - md5 
  - phash
@@ -51,7 +51,7 @@ image
  - filename 
  - timestamp 
 
-account
+**account**
  - id
  - username
  - password
@@ -61,30 +61,30 @@ account
  - timestamp
  - parser
 
-protocol
+**protocol**
  - id
  - name
 
-protocol_counts
+**protocol_counts**
  - id
  - protocol_id
  - count
  - timestamp
  - parser
 
-mobile_device
+**mobile_device**
  - id
  - name
  - parser
  - timestamp
 
-user_agent
+**user_agent**
  - id
  - ua_string
  - parser
  - timestamp
 
-vulnerability
+**vulnerability**
  - id
  - source_port
  - source_ip
