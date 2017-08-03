@@ -44,12 +44,13 @@ paint the page.
 
 **image**
  - id
- - md5 
+ - (md5|sha1) -- Not sure which is faster yet
  - phash
  - score 
  - url
  - filename 
- - timestamp 
+ - timestamp
+ - count
 
 **account**
  - id
