@@ -44,7 +44,7 @@ paint the page.
 
 **image**
  - id
- - (md5|sha1) -- Not sure which is faster yet
+ - hash -- (md5|sha1) -- Not sure which is faster yet
  - phash
  - score 
  - url
