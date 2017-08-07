@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Attach Web",
+            "address": "localhost",
+            "port": 4001,
+            "protocol": "inspector",
+            "restart": true,
+            "localRoot": "${workspaceRoot}/app",
+            "remoteRoot": "/web",
+            "sourceMaps": false,
+            "smartStep": true
+        }
+    ]
+}
