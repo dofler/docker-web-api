@@ -32,8 +32,11 @@ module.exports = class Server {
       var image = {
         hash: hash,
         filename: [hash, extension].join('.'),
-        url: req.body.url,
         count: 1
+      }
+
+      if (req.body && req.body.url) {
+        image.url = req.body.url
       }
 
       req.files.image.mv(path.resolve(this._imagePath, image.filename), (err) => {
