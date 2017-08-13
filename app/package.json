@@ -10,8 +10,8 @@
     "express": "^4.8.2",
     "express-fileupload": "^0.1.4",
     "hasha": "^3.0.0",
-    "request": "^2.81.0",
-    "socket.io": "^2.0.3"
+    "socket.io": "^2.0.3",
+    "superagent": "^3.5.2"
   },
   "devDependencies": {
     "async-each": "^1.0.1",

@@ -1,4 +1,4 @@
-const request = require('request')
+const request = require('superagent')
 const url = require('url')
 
 module.exports = class NSFWService {
@@ -7,22 +7,22 @@ module.exports = class NSFWService {
   }
 
   scoreImage (image, filename, callback) {
-    request.post(url.resolve(this._host, '/score'), {
-      image: image
-    }, (err, res, body) => {
-      if (err) {
-        console.warn('Invalid image ' + filename)
+    request
+    .post(url.resolve(this._host, '/score'))
+    .set('Accept', 'application/json')
+    .attach('image', 'test/fixtures/image.png')
+    .end((error, res) => {
+      if (error) {
+        console.warn('Invalid image ' + filename, error)
         return callback(new Error('Not a valid image file'))
       }
 
-      var results = JSON.parse(body)
-
-      if (results.error) {
+      if (res.body.error) {
         console.warn('Invalid response from nsfw filter ' + filename)
         return callback(new Error('Not a valid image file'))
       }
 
-      return callback(null, results)
+      return callback(null, res.body)
     })
   }
 }

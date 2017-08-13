@@ -39,8 +39,8 @@ describe('API', () => {
   })
 
   after((done) => {
-    fs.readdir(imagePath, (err, result) => {
-      if (err) {
+    fs.readdir(imagePath, (error, result) => {
+      if (error) {
         return done()
       }
 
