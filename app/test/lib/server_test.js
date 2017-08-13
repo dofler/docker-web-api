@@ -1,25 +1,31 @@
-/* global describe, it */
-const chai = require('chai')
-const expect = chai.expect
-const { app } = require('../../lib/server')
+/* global describe, it, before, after  */
+const FakeNSFWService = require('../mock/nsfw_service')
+const nsfwService = new FakeNSFWService()
+
+const path = require('path')
+const imagePath = path.resolve('./images')
+
+const Server = require('../../lib/server')
+const server = new Server(imagePath, nsfwService)
+
 const supertest = require('supertest')
-const request = supertest(app)
+const request = supertest(server.getApp())
+
+const fs = require('fs')
+const each = require('async-each')
 
 describe('API', () => {
+  before((done) => {
+    fs.mkdir(imagePath, () => done())
+  })
+
   describe('POST /api/image', () => {
     it('returns 400 on invalid requests', (done) => {
       request
         .post('/api/image')
         .set('Accept', 'application/json')
         .expect('Content-Type', /json/)
-        .expect(400)
-        .end((error, res) => {
-          if (error) {
-            throw error
-          }
-
-          done()
-        })
+        .expect(400, done)
     })
 
     it('accepts image files', (done) => {
@@ -28,15 +34,19 @@ describe('API', () => {
         .attach('image', 'test/fixtures/image.png')
         .set('Accept', 'application/json')
         .field('url', 'http://example.com/image.png')
-        .expect('Content-Type', /json/)
-        .expect(200)
-        .end((error, res) => {
-          if (error) {
-            throw error
-          }
+        .expect(200, done)
+    })
+  })
 
-          done()
-        })
+  after((done) => {
+    fs.readdir(imagePath, (err, result) => {
+      if (err) {
+        return done()
+      }
+
+      each(result, (file, next) => {
+        fs.unlink(path.resolve(imagePath, file), next)
+      }, () => done())
     })
   })
 })

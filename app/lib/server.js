@@ -1,61 +1,67 @@
-const app = require('express')()
-const server = require('http').Server(app)
-const io = require('socket.io')(server)
-
+const express = require('express')
+const http = require('http')
+const socketIO = require('socket.io')
 const fileUpload = require('express-fileupload')
 const hasha = require('hasha')
-const request = require('request')
+const path = require('path')
 
-app.use(fileUpload())
+module.exports = class Server {
+  constructor (imagePath, nsfwService) {
+    this._imagePath = imagePath
+    this._nsfwService = nsfwService
 
-app.post('/api/image', (req, res) => {
-  if (!req.files) {
-    console.warn('No image was uploaded to image endpoint')
-    return res.status(400).send({ error: 'No file was uploaded' })
+    this._app = express()
+    this._server = http.Server(this._app)
+    this._io = socketIO(this._server)
+
+    this._app.use(fileUpload())
+
+    this.registerRoutes()
   }
 
-  var hash = hasha(req.files.image.data, { algorithm: 'md5' })
-  var extension = req.files.image.name.split('.').pop()
-
-  var image = {
-    hash: hash,
-    filename: [hash, extension].join('.'),
-    url: req.body.url,
-    count: 1
-  }
-
-  req.files.image.mv('/images/' + image.filename, (err) => {
-    if (err) {
-      console.warn('Error moving image %', err)
-      return res.status(500).send({ error: 'An error occured' })
-    }
-
-    request.post(process.env.IMGSVC_ADDRESS + '/score', {
-      image: req.files.image.data
-    }, (err, resp, body) => {
-      if (err) {
-        console.warn('Invalid image ' + image.filename)
-        return res.status(415).send({ error: 'Not a valid image file' })
+  registerRoutes () {
+    this._app.post('/api/image', (req, res) => {
+      if (!req.files) {
+        console.warn('No image was uploaded to image endpoint')
+        return res.status(400).send({ error: 'No file was uploaded' })
       }
 
-      var results = JSON.parse(body)
+      var hash = hasha(req.files.image.data, { algorithm: 'md5' })
+      var extension = req.files.image.name.split('.').pop()
 
-      if (results.error) {
-        console.warn('Invalid response from nsfw filter ' + image.filename)
-        return res.status(415).send({ error: 'Not a valid image file' })
+      var image = {
+        hash: hash,
+        filename: [hash, extension].join('.'),
+        url: req.body.url,
+        count: 1
       }
 
-      image.score = results.score
-      image.phash = results.phash
+      req.files.image.mv(path.resolve(this._imagePath, image.filename), (err) => {
+        if (err) {
+          console.warn('Error moving image %s', image.filename, err)
+          return res.status(500).send({ error: 'An error occured' })
+        }
 
-      io.emit('image', image)
-      console.info('Created Image ' + image.filename + ' [' + image.score + '|' + image.phash + ']')
-      return res.status(200).send({ image: image })
+        this._nsfwService.scoreImage(req.files.image.data, image.filename, (error, result) => {
+          if (error) {
+            return res.status(415).send({ error: 'Not a valid image file' })
+          }
+
+          image.score = result.score
+          image.phash = result.phash
+
+          this._io.emit('image', image)
+          return res.status(200).end()
+        })
+      })
     })
-  })
-})
+  }
 
-module.exports = {
-  app: app,
-  server: server
+  listen (port, callback) {
+    this._server.listen(port, callback)
+  }
+
+  getApp () {
+    return this._app
+  }
 }

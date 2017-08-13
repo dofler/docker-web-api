@@ -13,7 +13,7 @@ const PATHS = {
   ],
 
   test: [
-    'test/**/*_test.js'
+    'test/**/*.js'
   ]
 }
 
