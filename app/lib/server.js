@@ -1,9 +1,11 @@
 const express = require('express')
+const session = require('express-session')
 const fs = require('fs')
 const chalk = require('chalk')
 const http = require('http')
 const socketIO = require('socket.io')
 const fileUpload = require('express-fileupload')
+const bodyParser = require('body-parser')
 const hasha = require('hasha')
 const path = require('path')
 const mmm = require('mmmagic')
@@ -22,6 +24,11 @@ module.exports = class Server {
     this._io = socketIO(this._server)
 
     this._app.use(fileUpload())
+    this._app.use(bodyParser.urlencoded())
+    this._app.use(bodyParser.json())
+    this._app.use(session({
+      secret: 's3kr3t squ1rr3l'
+    }))
 
     this.registerRoutes()
   }
@@ -80,11 +87,12 @@ module.exports = class Server {
               // Call out to the image service to get the NSFW score
               this._nsfwService.scoreImage(req.files.image.data, (err, score) => {
 
-                // If there was an issue getting the score, then we should log and inform
-                // the parser
+                // If there was an issue getting the score, then we should log the problem.
+                // We'll still emit the image however, as it may be a SVG file, but it just
+                // won't be scored, so will likely be ignored. 
                 if (err) {
-                  console.log(`Webservice({chalk.red('images')}) : image service reported an error`)
-                  return res.status(415).send({error: 'image service barfed on uploaded file'})
+                  console.log(`Webservice({chalk.yellow('images')}) : {chalk.red(image.hash)} image service reported an error`)
+                  score = -1
                 }
 
                 // Now we need to write the file to disk.
@@ -94,7 +102,7 @@ module.exports = class Server {
                   // and return a 500 error code to the perser.
                   if (err) {
                     console.log(`Webservice({chalk.red('images')} : could not write file to disk`)
-                    return res.status(500).send({error: 'could not write file to disk'})
+                    return res.status(500).send({status: 'error', message: 'could not write file to disk'})
                   }
 
                   // As we have gotten this far, I think it's safe to assume that we can update the
@@ -105,6 +113,7 @@ module.exports = class Server {
                   }).then(resp => {
                     console.log(`Webservice({chalk.green('images')}) : {chalk.blue(image.hash)} pushed to clients`)
                     this._io.emit('images', image)
+                    return res.status(200).send({status: 'ok', image: image})
                   })
 
                 })
@@ -130,30 +139,14 @@ module.exports = class Server {
               } else {
                 console.log(`Webservice({chalk.green('images')}) : {chalk.green(image.hash)} updated`)
               }
+              return res.status(200).send({status: 'ok', image: image})
             })
           }
         })
       })
     })
 
-
-    this._app.post('/api/dns-address', (req, res) => {
-
-    })
-
-    this._app.post('/api/mobile-device', (req, res) => {
-
-    })
-
-    this._app.post('/api/user-agent', (req, res) => {
-
-    })
-
     this._app.post('/api/vulnerability', (req, res) => {
-
-    })
-
-    this._app.post('/api/account', (req, res) => {
 
     })
 
@@ -161,12 +154,150 @@ module.exports = class Server {
 
     })
 
-    this._app.get('/api/blacklist', (req, res) => {
+    this._app.post('/api/dns-address', (req, res) => {
 
+      // First thing, we need to check to see if the DNSAddress exists.  If it doesn't,
+      // then we will need to create the entry.
+      db.DNSAddress.findOrCreate({where: {address: req.body.address},
+        defaults: {
+          count: 1 
+        }
+      }).spread((address, created) =>{
+
+        // If we created the entry, then there is nothing further to do than log to the console.
+        if (created) {
+          console.log(`Webservice({chalk.green('dns-addresses')}) : {chalk.blue(address.address)} pushed to clients`)
+
+        // If we're working with an existing entry, then we will want to update the last seen
+        // timestamp and the counter for this DNSAddress.
+        } else {
+          address.updateAttributes({
+            timestamp = Date.now()
+            count = address.count + 1,
+          }).then(resp => {
+            console.log(`Webservice({chalk.green('dns-addresses')}) : {chalk.blue(address.address)} updated & pushed to clients`)
+          })
+        }
+
+        // In either case, we will want to emit the entry to all of the connected clients.
+        this._io.emit('dns-addresses', address)
+      })
     })
 
-    this._app.put('/api/blacklist', (req, res) => {
+    this._app.post('/api/mobile-device', (req, res) => {
 
+      // First thing, we need to check to see if the MobileDevice exists.  If it doesn't,
+      // then we will need to create the entry.
+      db.MobileDevice.findOrCreate({where: {name: req.body.name},
+        defaults: {
+          count: 1 
+        }
+      }).spread((device, created) =>{
+
+        // If we created the entry, then there is nothing further to do than log to the console.
+        if (created) {
+          console.log(`Webservice({chalk.green('mobile-devices')}) : {chalk.blue(device.name)} pushed to clients`)
+
+        // If we're working with an existing entry, then we will want to update the last seen
+        // timestamp and the counter for this MobileDevice.
+        } else {
+          address.updateAttributes({
+            timestamp = Date.now()
+            count = address.count + 1,
+          }).then(resp => {
+            console.log(`Webservice({chalk.green('mobile-devices')}) : {chalk.blue(device.name)} updated & pushed to clients`)
+          })
+        }
+
+        // In either case, we will want to emit the entry to all of the connected clients.
+        this._io.emit('mobile-devices', device)
+      })
+    })
+
+    this._app.post('/api/user-agent', (req, res) => {
+
+      // First thing, we need to check to see if the UserAgent exists.  If it doesn't,
+      // then we will need to create the entry.
+      db.UserAgent.findOrCreate({where: {string: req.body.uastring},
+        defaults: {
+          count: 1 
+        }
+      }).spread((ua, created) =>{
+
+        // If we created the entry, then there is nothing further to do than log to the console.
+        if (created) {
+          console.log(`Webservice({chalk.green('user-agents')}) : {chalk.blue(ua.string)} pushed to clients`)
+
+        // If we're working with an existing entry, then we will want to update the last seen
+        // timestamp and the counter for this UserAgent.
+        } else {
+          address.updateAttributes({
+            timestamp = Date.now()
+            count = address.count + 1,
+          }).then(resp => {
+            console.log(`Webservice({chalk.green('user-agents')}) : {chalk.blue(ua.string)} updated & pushed to clients`)
+          })
+        }
+
+        // In either case, we will want to emit the entry to all of the connected clients.
+        this._io.emit('user-agents', ua)
+      })
+    })
+
+    this._app.post('/api/account', (req, res) => {
+
+      // First thing, we need to check to see if the UserAgent exists.  If it doesn't,
+      // then we will need to create the entry.
+      db.Account.findOrCreate({
+        where: {
+          username: req.body.username, 
+          password: req.body.password, 
+          protocol: req.body.protocol
+        },
+        defaults: {
+          count: 1,
+          information: req.body.information,
+          location: req.body.location
+        }
+      }).spread((account, created) =>{
+
+        // If we created the entry, then there is nothing further to do than log to the console.
+        if (created) {
+          console.log(`Webservice({chalk.green('accounts')}) : {chalk.blue(account.username)}:{chalk.red(account.password)} pushed to clients`)
+
+        // If we're working with an existing entry, then we will want to update the last seen
+        // timestamp and the counter for this UserAgent.
+        } else {
+          address.updateAttributes({
+            timestamp = Date.now()
+            count = address.count + 1,
+          }).then(resp => {
+            console.log(`Webservice({chalk.green('accounts')}) : {chalk.blue(account.username)}:{chalk.red(account.password)} updated & pushed to clients`)
+          })
+        }
+
+        // In either case, we will want to emit the entry to all of the connected clients.
+        this._io.emit('accounts', account)
+      })
+    })
+
+    // Simply returns a full listing of all of the blacklisted entries.
+    this._app.get('/api/blacklist', (req, res) => {
+      db.Blacklist.findAll().then(blacklist => {
+        return res.status(200).json(blacklist)
+      })
+    })
+
+    // Adds a new Blacklist entry if it doesn't exist yet.
+    this._app.post('/api/blacklist', (req, res) => {
+      db.Blacklist.findOrCreate({
+        where: {
+          hash: req.body.hash,
+          phash: req.body.phash
+        }
+      }).spread((entry, created) => {
+
+      })
     })
 
     this._app.delete('/api/blacklist', (req, res) => {
