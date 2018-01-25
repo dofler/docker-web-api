@@ -201,7 +201,7 @@ module.exports = class Server {
         // If we're working with an existing entry, then we will want to update the last seen
         // timestamp and the counter for this MobileDevice.
         } else {
-          address.updateAttributes({
+          device.updateAttributes({
             timestamp = Date.now()
             count = address.count + 1,
           }).then(resp => {
@@ -231,7 +231,7 @@ module.exports = class Server {
         // If we're working with an existing entry, then we will want to update the last seen
         // timestamp and the counter for this UserAgent.
         } else {
-          address.updateAttributes({
+          ua.updateAttributes({
             timestamp = Date.now()
             count = address.count + 1,
           }).then(resp => {
@@ -246,7 +246,7 @@ module.exports = class Server {
 
     this._app.post('/api/account', (req, res) => {
 
-      // First thing, we need to check to see if the UserAgent exists.  If it doesn't,
+      // First thing, we need to check to see if the Account exists.  If it doesn't,
       // then we will need to create the entry.
       db.Account.findOrCreate({
         where: {
@@ -266,9 +266,9 @@ module.exports = class Server {
           console.log(`Webservice({chalk.green('accounts')}) : {chalk.blue(account.username)}:{chalk.red(account.password)} pushed to clients`)
 
         // If we're working with an existing entry, then we will want to update the last seen
-        // timestamp and the counter for this UserAgent.
+        // timestamp and the counter for this Account.
         } else {
-          address.updateAttributes({
+          account.updateAttributes({
             timestamp = Date.now()
             count = address.count + 1,
           }).then(resp => {
@@ -296,7 +296,10 @@ module.exports = class Server {
           phash: req.body.phash
         }
       }).spread((entry, created) => {
-
+        if (created) {
+          console.log(`Webservice({chalk.green('blacklist')}) : {chalk.blue(entry.hash)}/{chalk.blue(entry.phash)} added and pushed to clients`)
+          this._io.emit('blacklist', entry)
+        }
       })
     })
 
