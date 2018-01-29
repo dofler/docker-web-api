@@ -36,6 +36,7 @@ var Host = sequelize.define('host', {
 
 var Vulnerability = sequelize.define('vuln', {
   id: {type: Sequelize.INTEGER, autoIncrement: true, primaryKey: true},
+  vuln_id: {type: Sequelize.INTEGER, unique: true},
   name: {type: Sequelize.TEXT},
   severity: {type: Sequelize.STRING(8)},
   count: {type: Sequelize.INTEGER, defaultValue: 0},
